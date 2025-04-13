@@ -3,4 +3,13 @@ name = "minesweeper"
 version = "0.1.0"
 edition = "2024"
 
+[lib]
+name = "minesweeper"
+path = "src/lib/mod.rs"
+
+[[bin]]
+name = "minesweeper"
+path = "src/main.rs"
+
 [dependencies]
+rand = "0.9.0"
