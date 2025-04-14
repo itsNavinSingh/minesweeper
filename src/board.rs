@@ -1,11 +1,14 @@
-use rand::{rng, seq::SliceRandom};
+use rand::{seq::SliceRandom, thread_rng};
+use wasm_bindgen::prelude::*;
 
 use crate::cell;
+#[wasm_bindgen]
 pub struct Board {
     size: usize,
     cells: Vec<cell::Cell>,
 }
 
+#[wasm_bindgen]
 impl Board {
     fn new(size: usize) -> Self {
         Board {
@@ -21,7 +24,7 @@ impl Board {
     }
 
     fn place_mines(&mut self, mine_count: usize) {
-        let mut rng = rng();
+        let mut rng = thread_rng();
         let mut numbers: Vec<usize> = (0..self.size * self.size).collect();
         numbers.shuffle(&mut rng);
 
@@ -62,7 +65,7 @@ impl Board {
     }
 
     fn initial_show(&mut self) {
-        let mut rng = rng();
+        let mut rng = thread_rng();
         let mut numbers: Vec<usize> = (0..self.size * self.size).collect();
         numbers.shuffle(&mut rng);
 
@@ -81,6 +84,7 @@ impl Board {
         }
     }
     
+    #[wasm_bindgen(constructor)]
     pub fn create_level(size: usize, mine_count: usize) -> Self {
         let mut board = Board::new(size);
         board.place_mines(mine_count);
@@ -88,6 +92,7 @@ impl Board {
         board
     }
 
+    #[wasm_bindgen]
     pub fn toggle_flag(&mut self, x: usize, y: usize) {
         if x < self.size && y < self.size {
             let idx: usize = y*self.size+x;
@@ -102,6 +107,8 @@ impl Board {
             }
         }
     }
+
+    #[wasm_bindgen]
     pub fn dig_cell(&mut self, x: usize, y:usize) -> bool {
         if x < self.size && y < self.size {
             let idx: usize = y*self.size+x;
@@ -115,6 +122,8 @@ impl Board {
         }
         true
     }
+
+    #[wasm_bindgen]
     pub fn is_completed(&self) -> bool {
         for idx in 0..self.size*self.size {
             // all non-mine must be in shown state
@@ -130,6 +139,8 @@ impl Board {
         }
         true
     }
+
+    #[wasm_bindgen]
     pub fn get_show_code(&self, x: usize, y: usize) -> u8 {
         // 0-8 = adjacency, 9 = flaged, 10 = hidden
         match &self.cells[y*self.size+x].state {
@@ -143,10 +154,13 @@ impl Board {
             }
         }
     }
+
+    #[wasm_bindgen]
     pub fn get_final_code(&self, x: usize, y: usize) -> u8 {
         match &self.cells[y*self.size+x].value {
             cell::CellValue::Mine => 11,
             cell::CellValue::Adjacent(val) => *val,
         }
     }
+    
 }

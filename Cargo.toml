@@ -4,12 +4,9 @@ version = "0.1.0"
 edition = "2024"
 
 [lib]
-name = "minesweeper"
-path = "src/lib/mod.rs"
-
-[[bin]]
-name = "minesweeper"
-path = "src/main.rs"
+crate-type = ["cdylib"]
 
 [dependencies]
-rand = "0.9.0"
+rand = { version = "0.8.5", features = ["small_rng"] }
+wasm-bindgen = "0.2.100"
+getrandom = { version = "0.2.15", features = ["js"] }
