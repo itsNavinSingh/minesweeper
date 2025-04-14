@@ -10,8 +10,9 @@ pub struct Board {
 
 #[wasm_bindgen]
 impl Board {
-    fn new(size: usize) -> Self {
-        Board {
+    #[wasm_bindgen(constructor)]
+    pub fn new(size: usize, mine_count: usize) -> Self {
+        let mut board = Board {
             size,
             cells: vec![
                 cell::Cell {
@@ -20,7 +21,10 @@ impl Board {
                 };
                 size * size
             ],
-        }
+        };
+        board.place_mines(mine_count);
+        board.initial_show();
+        board
     }
 
     fn place_mines(&mut self, mine_count: usize) {
@@ -82,14 +86,6 @@ impl Board {
                 return;
             }
         }
-    }
-    
-    #[wasm_bindgen(constructor)]
-    pub fn create_level(size: usize, mine_count: usize) -> Self {
-        let mut board = Board::new(size);
-        board.place_mines(mine_count);
-        board.initial_show();
-        board
     }
 
     #[wasm_bindgen]
