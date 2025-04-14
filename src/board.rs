@@ -73,19 +73,31 @@ impl Board {
         let mut numbers: Vec<usize> = (0..self.size * self.size).collect();
         numbers.shuffle(&mut rng);
 
-        let mut count = 0;
+        let mut count = Board::initial_mine_number(self.size);
         for &num in &numbers {
             match &self.cells[num].value {
                 cell::CellValue::Mine => {}
                 _ => {
                     self.cells[num].state = cell::CellState::Shown;
-                    count += 1;
+                    count -= 1;
                 }
             }
-            if count >= 5 {
+            if count < 0 {
                 return;
             }
         }
+    }
+
+    fn initial_mine_number(size: usize) -> i32 {
+        // formula:- round(min(50, max(3, 0.12 * s * s)))
+        let mut numb = size as f32 * 0.12 * size as f32;
+        if numb < 3.0 {
+            numb = 3.0;
+        }
+        if numb > 50.0 {
+            numb = 50.0;
+        }
+        numb as i32
     }
 
     #[wasm_bindgen]
