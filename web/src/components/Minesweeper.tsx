@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import gameOverSound from "@/assets/audiofile.mp3";
 
 interface Board {
     get_show_code(x: number, y: number): number;
@@ -10,13 +11,15 @@ interface Board {
 interface MinesweeperProf{
     boardSize: number;
     mineCount: number;
+    nextLevel: () => void;
     className?: string;
 }
-const Minesweeper: React.FC<MinesweeperProf> = ({boardSize, mineCount, className = ""}: MinesweeperProf) => {
+const Minesweeper: React.FC<MinesweeperProf> = ({boardSize, mineCount, nextLevel, className = ""}: MinesweeperProf) => {
     const [board, setBoard] = useState<Board | null>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [updateCounter, setUpdateCounter] = useState(0);
     const [error, setError] = useState<string | null >(null);
+    const [gameOver, setGameOver] = useState<boolean>(false);
     const cellSize = 40;
 
     useEffect(()=>{
@@ -87,6 +90,53 @@ const Minesweeper: React.FC<MinesweeperProf> = ({boardSize, mineCount, className
             setError('Failed to render game');
         }
     }, [board, updateCounter, boardSize]);
+    useEffect(()=> {
+        if (gameOver) {
+            drawFinalBoard();
+        }
+    }, [gameOver]);
+
+    const drawFinalBoard = () => {
+        if (!canvasRef.current || !board) return;
+        const ctx = canvasRef.current.getContext('2d');
+        if (!ctx) return;
+        ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+        ctx.font = "20px Arial";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        for (let y = 0; y < boardSize; y++) {
+            for (let x = 0; x < boardSize; x++) {
+                let code;
+                try {
+                    code = board.get_final_code(x, y);
+                } catch (error) {
+                    console.error(`get_final_code(${x}, ${y}) failed: `, error);
+                    code = 10;
+                }
+                const isEven = (x + y) % 2 === 0;
+                ctx.fillStyle =
+                    code === 10
+                        ? isEven
+                            ? '#d1d5db'
+                            : '#e5e7eb'
+                        : code === 11
+                        ? '#ffffff'
+                        : isEven
+                        ? '#f3f4f6'
+                        : '#ffffff'
+                ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+                ctx.strokeStyle = '#374151';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(x * cellSize, y * cellSize, cellSize, cellSize);
+                if (code >= 0 && code <= 8) {
+                    ctx.fillStyle = '#1f2937';
+                    ctx.fillText(code.toString(), x * cellSize + cellSize / 2, y * cellSize + cellSize / 2);
+                }else if (code === 11) {
+                    ctx.fillText("💣", x * cellSize + cellSize / 2, y * cellSize + cellSize / 2);
+                }
+            }
+        }
+    }
 
     const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
         if (!board || !canvasRef.current) return;
@@ -99,14 +149,9 @@ const Minesweeper: React.FC<MinesweeperProf> = ({boardSize, mineCount, className
         } else {
             const result = board.dig_cell(x, y);
             if (!result) {
-                for (let y = 0; y < boardSize; y++) {
-                    for (let x = 0; x < boardSize; x++) {
-                        if (board.get_final_code(x, y) === 11) {
-                            board.dig_cell(x, y);
-                        }
-                    }
-                }
-                alert("Game Over! Mine hit.")
+                setGameOver(true);
+                const audio = new Audio(gameOverSound);
+                audio.play();
             }
         }
         setUpdateCounter((prev)=>prev+1);
@@ -121,6 +166,8 @@ const Minesweeper: React.FC<MinesweeperProf> = ({boardSize, mineCount, className
             const newBoard = new wasm.Board(boardSize, mineCount);
             setBoard(newBoard);
             setUpdateCounter(0);
+            setGameOver(false);
+            setError(null);
         } catch (error) {
             console.error('Failed to reset Board: ', error);
         }
@@ -128,12 +175,7 @@ const Minesweeper: React.FC<MinesweeperProf> = ({boardSize, mineCount, className
 
     return (
         <div className="flex flex-col items-center gap-4">
-            <button
-                onClick={resetBoard}
-                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-            >
-                Reset Game
-            </button>
+            <p className="text-xl font-medium text-red-500">{error? error : ""}</p>
             <canvas
                 ref={canvasRef}
                 width={boardSize * cellSize}
@@ -141,6 +183,20 @@ const Minesweeper: React.FC<MinesweeperProf> = ({boardSize, mineCount, className
                 onClick={handleCanvasClick}
                 className={`border border-gray-800 shadow-lg ${className}`}
             />
+           <div className="flex space-x-4">
+           <button
+                onClick={resetBoard}
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            >
+                Reset Game
+            </button>
+            <button
+                onClick={nextLevel}
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            >
+                Next Level
+            </button>
+           </div>
         </div>
     );
 }
